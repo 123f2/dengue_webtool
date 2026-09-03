@@ -1,0 +1,125 @@
+import streamlit as st
+from utils import load_and_preprocess_data, query_gene, plot_gene_boxplot, plot_gene_barchart
+
+st.set_page_config(page_title="Gene Query — Severe Dengue Explorer", page_icon="🔍", layout="wide")
+
+DATA_PATH = "data/Severe_dengue_DHF_DSS_Xinyang.xlsx"
+
+st.title("🔍 Gene Query")
+st.markdown(
+    """
+    Search for a gene to see how it changes in severe dengue patients compared to mild
+    dengue (DF), across 7 independent datasets. All genes are searchable, even those only
+    detected in a subset of patients — the number of patients actually analysed is always
+    shown alongside the results.
+    """
+)
+
+try:
+    df, col_meta, dataset_summary = load_and_preprocess_data(DATA_PATH)
+except FileNotFoundError:
+    st.error(f"⚠️ Data file not found at `{DATA_PATH}`. Please add the dataset to the `data/` folder.")
+    st.stop()
+
+col_search, col_mode = st.columns([2, 1])
+
+with col_search:
+    gene_query = st.text_input(
+        "Enter Gene Symbol",
+        placeholder="e.g. STAT1 / IFIT3 / CXCL10 / ISG15 / OAS1",
+    )
+
+with col_mode:
+    analysis_mode = st.selectbox(
+        "Select Analysis Group",
+        options=["combined", "DHF", "DSS"],
+        format_func=lambda m: {
+            "combined": "Combined Severe Dengue (DHF + DSS)",
+            "DHF": "DHF vs DF",
+            "DSS": "DSS vs DF",
+        }[m],
+    )
+
+st.caption(
+    "💡 Example genes to try: **STAT1** (shows cross-dataset heterogeneity), "
+    "**IFIT3** (illustrates missing-value handling — not detected in all patients)"
+)
+
+st.markdown("---")
+
+if gene_query.strip() == "":
+    st.info("👆 Enter a gene symbol above to begin.")
+    st.stop()
+
+result = query_gene(df, col_meta, gene_query, mode=analysis_mode)
+
+if not result["found"]:
+    st.warning(f"Gene **{gene_query}** was not found in this dataset. Please check the spelling.")
+    st.stop()
+
+if result["total_valid_n"] == 0:
+    st.warning(
+        f"Gene **{result['gene_symbol']}** was found, but has no detected values under the "
+        f"**{analysis_mode}** analysis group. Try a different analysis group."
+    )
+    st.stop()
+
+# ---- STEP A: Textual results first ----
+st.success(f"✅ Found **{result['gene_symbol']}**")
+st.subheader("📊 Summary")
+
+detection_rate = result["total_valid_n"] / result["total_n"] * 100
+c1, c2, c3 = st.columns(3)
+c1.metric("Patients analysed", f"{result['total_valid_n']} / {result['total_n']}")
+c2.metric("Detection rate", f"{detection_rate:.0f}%")
+c3.metric("Datasets contributing data", result["group_summary"]["group"].nunique())
+
+st.markdown(f"**Analysis group:** {analysis_mode} vs DF")
+
+st.subheader("🧬 Dataset-level Summary Table")
+display_table = result["group_summary"].rename(columns={
+    "group": "Dataset", "n": "N patients", "mean": "Mean log2FC",
+    "median": "Median log2FC", "std": "Std Dev",
+})
+st.dataframe(
+    display_table.style.format({
+        "Mean log2FC": "{:.3f}", "Median log2FC": "{:.3f}", "Std Dev": "{:.3f}",
+    }),
+    use_container_width=True, hide_index=True,
+)
+
+if analysis_mode != "combined":
+    all_datasets = set(col_meta["dataset"].unique())
+    covered_datasets = set(result["group_summary"]["group"].unique())
+    missing = sorted(all_datasets - covered_datasets)
+    if missing:
+        st.caption(
+            f"ℹ️ Note: {len(missing)} dataset(s) have no {analysis_mode} patients and are "
+            f"therefore not shown: {', '.join(missing)}"
+        )
+
+st.markdown("---")
+
+# ---- STEP B: Visualization — user chooses chart type ----
+st.subheader("📈 Visualisation")
+
+viz_type = st.selectbox(
+    "Choose visualisation type",
+    options=["Box Plot (all patient data points)", "Bar Chart (dataset mean ± SD)"],
+)
+
+if viz_type.startswith("Box Plot"):
+    fig = plot_gene_boxplot(result)
+    st.caption(
+        "Each point is one patient's log2FC value. Box shows median and interquartile range."
+    )
+else:
+    fig = plot_gene_barchart(result)
+    st.caption(
+        "Bars show the mean log2FC per dataset, with error bars indicating ±1 standard deviation."
+    )
+
+if fig is not None:
+    st.plotly_chart(fig, use_container_width=True)
+else:
+    st.warning("No data available to plot for this gene under the current analysis group.")

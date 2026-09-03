@@ -53,8 +53,24 @@ if gene_query.strip() == "":
 
 result = query_gene(df, col_meta, gene_query, mode=analysis_mode)
 
+# if not result["found"]:
+#    st.warning(f"Gene **{gene_query}** was not found in this dataset. Please check the spelling.")
+#    st.stop()
+from difflib import get_close_matches
+
 if not result["found"]:
     st.warning(f"Gene **{gene_query}** was not found in this dataset. Please check the spelling.")
+    
+    # 新增:模糊匹配提示
+    all_gene_names = df[GENE_COL].astype(str).tolist()
+    close_matches = get_close_matches(gene_query.upper(), 
+                                        [g.upper() for g in all_gene_names], 
+                                        n=5, cutoff=0.6)
+    if close_matches:
+        # 找回原始大小写的基因名(因为上面比对用的是全大写)
+        suggestions = [g for g in all_gene_names if g.upper() in close_matches]
+        st.info(f"💡 Did you mean: {', '.join(f'**{s}**' for s in suggestions)}?")
+    
     st.stop()
 
 if result["total_valid_n"] == 0:

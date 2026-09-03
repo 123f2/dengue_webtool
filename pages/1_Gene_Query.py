@@ -1,5 +1,5 @@
 import streamlit as st
-from utils import load_and_preprocess_data, query_gene, plot_gene_boxplot, plot_gene_barchart
+from utils import load_and_preprocess_data, query_gene, plot_gene_boxplot, plot_gene_barchart, GENE_COL
 
 st.set_page_config(page_title="Gene Query — Severe Dengue Explorer", page_icon="🔍", layout="wide")
 

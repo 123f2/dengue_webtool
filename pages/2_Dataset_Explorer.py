@@ -1,5 +1,10 @@
 import streamlit as st
-from utils import load_and_preprocess_data
+from utils import (
+    load_and_preprocess_data,
+    get_overall_dataset_distribution,
+    plot_overall_distribution,
+    GENE_COL,
+)
 
 st.set_page_config(page_title="Dataset Explorer — Severe Dengue Explorer", page_icon="🧪", layout="wide")
 
@@ -21,6 +26,9 @@ except FileNotFoundError:
     st.error(f"⚠️ Data file not found at `{DATA_PATH}`. Please add the dataset to the `data/` folder.")
     st.stop()
 
+# =========================
+# 1. 数据集患者组成
+# =========================
 st.subheader("📋 Patients per dataset")
 
 pivot = dataset_summary.pivot(index="dataset", columns="severity", values="n_patients").fillna(0).astype(int)
@@ -35,6 +43,52 @@ c2.metric("Total DHF patients", int((col_meta["severity"] == "DHF").sum()))
 c3.metric("Total DSS patients", int((col_meta["severity"] == "DSS").sum()))
 
 st.markdown("---")
+
+# =========================
+# 2. 原始数据预览
+# =========================
+st.subheader("📄 Raw Data Preview")
+st.caption(
+    "A preview of the underlying expression matrix. Rows are genes; columns are "
+    "individual patient comparisons (log2FC vs. DF). Empty cells indicate the gene "
+    "was not detected in that patient/platform."
+)
+
+all_datasets = sorted(col_meta["dataset"].unique())
+preview_dataset = st.selectbox("Select a dataset to preview its columns", options=all_datasets)
+
+preview_cols = col_meta[col_meta["dataset"] == preview_dataset]["column"].tolist()
+n_show_rows = st.slider("Number of gene rows to preview", min_value=5, max_value=50, value=10, step=5)
+
+preview_df = df[[GENE_COL] + preview_cols].head(n_show_rows)
+st.dataframe(preview_df, use_container_width=True, hide_index=True)
+
+st.caption(f"Showing {n_show_rows} of {df.shape[0]:,} total genes, "
+           f"{len(preview_cols)} patient column(s) from {preview_dataset}.")
+
+st.markdown("---")
+
+# =========================
+# 3. 7个数据集的整体分布
+# =========================
+st.subheader("📈 Overall log2FC Distribution Across the 7 Datasets")
+st.caption(
+    "This plot shows the distribution of log2FC values across **all genes and all "
+    "patients** within each dataset (not specific to any one gene) — useful for "
+    "spotting overall differences in scale or variability between studies/platforms."
+)
+
+with st.spinner("Computing overall distribution (this may take a moment)..."):
+    melted = get_overall_dataset_distribution(df, col_meta)
+    fig = plot_overall_distribution(melted)
+
+st.plotly_chart(fig, use_container_width=True)
+
+st.markdown("---")
+
+# =========================
+# 4. 备注
+# =========================
 st.subheader("ℹ️ Notes on dataset composition")
 st.markdown(
     """

@@ -1,4 +1,5 @@
 import streamlit as st
+from pathlib import Path
 from utils import load_and_preprocess_data
 
 st.set_page_config(
@@ -9,11 +10,37 @@ st.set_page_config(
 
 DATA_PATH = "data/Severe_dengue_DHF_DSS_Xinyang.xlsx"
 
+# ============ 新增：顶部banner图片 ============
+BANNER_PATH = "assets/dengue_banner.jpg"
+banner_path_obj = Path(BANNER_PATH)
+
+if banner_path_obj.exists():
+    col_left, col_center, col_right = st.columns([1, 4, 1])
+    with col_center:
+        st.image(str(banner_path_obj), use_container_width=True)
+    st.caption(
+        "<div style='text-align: center; color: #8a99a8; font-size: 0.85rem; margin-top: 0.3rem;'>"
+        "Background: dengue epidemiology in Singapore</div>",
+        unsafe_allow_html=True,
+    )
+    st.write("")
+else:
+    st.info("ℹ️ Banner image not found — place it at `assets/dengue_banner.jpg` to display it here.")
+# ============ 插入结束 ============
+
+
 st.markdown(
     """
     <style>
     .main-header { font-size: 2.3rem; font-weight: 700; color: #1a3c5e; margin-bottom: 0rem; }
     .sub-header { font-size: 1.1rem; color: #5a6c7d; margin-top: 0rem; margin-bottom: 1.5rem; }
+    
+    /* 新增：给banner图片加圆角+阴影 */
+    div[data-testid="stImage"] img {
+        border-radius: 12px;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+    }
+    
     </style>
     """,
     unsafe_allow_html=True,

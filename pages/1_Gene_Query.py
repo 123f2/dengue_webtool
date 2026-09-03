@@ -104,6 +104,15 @@ st.dataframe(
     use_container_width=True, hide_index=True,
 )
 
+# 新增:下载按钮
+csv_data = display_table.to_csv(index=False).encode("utf-8")
+st.download_button(
+    label="⬇️ Download this table as CSV",
+    data=csv_data,
+    file_name=f"{result['gene_symbol']}_{analysis_mode}_summary.csv",
+    mime="text/csv",
+)
+
 if analysis_mode != "combined":
     all_datasets = set(col_meta["dataset"].unique())
     covered_datasets = set(result["group_summary"]["group"].unique())

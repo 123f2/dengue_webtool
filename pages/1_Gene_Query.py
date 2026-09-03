@@ -113,6 +113,7 @@ st.download_button(
     mime="text/csv",
 )
 
+
 if analysis_mode != "combined":
     all_datasets = set(col_meta["dataset"].unique())
     covered_datasets = set(result["group_summary"]["group"].unique())
@@ -144,7 +145,6 @@ else:
         "Bars show the mean log2FC per dataset, with error bars indicating ±1 standard deviation."
     )
 
-
 if fig is not None:
     st.plotly_chart(fig, use_container_width=True)
 
@@ -163,5 +163,6 @@ if fig is not None:
             "ℹ️ Chart image export is temporarily unavailable. "
             "You can still right-click the chart above to save it manually."
         )
+
 else:
     st.warning("No data available to plot for this gene under the current analysis group.")

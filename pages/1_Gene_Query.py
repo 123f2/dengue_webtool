@@ -144,7 +144,24 @@ else:
         "Bars show the mean log2FC per dataset, with error bars indicating ±1 standard deviation."
     )
 
+
 if fig is not None:
     st.plotly_chart(fig, use_container_width=True)
+
+    # 新增：图表下载按钮
+    chart_type_label = "boxplot" if viz_type.startswith("Box Plot") else "barchart"
+    try:
+        img_bytes = fig.to_image(format="png", scale=2, width=1000, height=600)
+        st.download_button(
+            label="⬇️ Download this chart as PNG",
+            data=img_bytes,
+            file_name=f"{result['gene_symbol']}_{analysis_mode}_{chart_type_label}.png",
+            mime="image/png",
+        )
+    except Exception as e:
+        st.caption(
+            "ℹ️ Chart image export is temporarily unavailable. "
+            "You can still right-click the chart above to save it manually."
+        )
 else:
     st.warning("No data available to plot for this gene under the current analysis group.")

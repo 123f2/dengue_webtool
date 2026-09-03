@@ -202,3 +202,53 @@ def plot_gene_barchart(query_result: dict):
         height=520, margin=dict(t=110),
     )
     return fig
+
+# ============ 追加到 utils.py 末尾 ============
+
+@st.cache_data(show_spinner="Computing overall distribution across datasets...")
+def get_overall_dataset_distribution(df: pd.DataFrame, col_meta: pd.DataFrame):
+    """
+    把整个表达矩阵展开(melt)，得到每个数据集下"所有基因 x 所有患者"的log2FC值，
+    用于绘制不针对单个基因的"整体数据分布"箱线图，直观展示每个数据集本身的
+    数值范围/离散程度（比如某个平台整体波动更大，或者存在批次效应）。
+    """
+    expr_cols = col_meta["column"].tolist()
+    melted = df[expr_cols].melt(var_name="column", value_name="log2FC").dropna()
+    melted = melted.merge(col_meta[["column", "dataset", "severity"]], on="column", how="left")
+    return melted
+
+
+def plot_overall_distribution(melted_df: pd.DataFrame):
+    """
+    整体分布箱线图：x轴=7个数据集，y轴=该数据集下所有基因所有患者的log2FC值。
+    注意：这里用 points=False（不画散点），因为数据量是百万级别，画散点会导致
+    浏览器卡顿；这张图的目的是看整体分布形状，不是看单个数据点。
+    """
+    order = sorted(melted_df["dataset"].unique())
+    n_values_per_dataset = melted_df.groupby("dataset").size().to_dict()
+
+    melted_df = melted_df.copy()
+    melted_df["dataset_label"] = melted_df["dataset"].map(
+        lambda d: f"{d} ({n_values_per_dataset[d]:,} values)"
+    )
+    order_labels = [f"{d} ({n_values_per_dataset[d]:,} values)" for d in order]
+
+    fig = px.box(
+        melted_df,
+        x="dataset_label",
+        y="log2FC",
+        points=False,
+        category_orders={"dataset_label": order_labels},
+        title="Overall log2FC Distribution per Dataset (all genes combined)",
+        labels={"dataset_label": "Dataset", "log2FC": "log2 Fold Change"},
+        color_discrete_sequence=["#4C72B0"],
+    )
+    fig.add_hline(y=0, line_dash="dash", line_color="gray", opacity=0.6)
+    fig.update_layout(
+        xaxis_tickangle=-30,
+        template="plotly_white",
+        showlegend=False,
+        height=520,
+    )
+    return fig
+    

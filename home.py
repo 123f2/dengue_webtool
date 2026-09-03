@@ -82,6 +82,26 @@ if data_loaded:
     with st.expander("📋 View dataset composition (patients per study)"):
         st.dataframe(dataset_summary, use_container_width=True, hide_index=True)
 
+# ============ 在这里插入 Quick Search 代码 ============
+st.markdown("---")
+st.markdown("## Quick Search")
+
+col_q1, col_q2 = st.columns([3, 1])
+with col_q1:
+    quick_gene = st.text_input(
+        "Search a gene now",
+        placeholder="e.g. STAT1",
+        label_visibility="collapsed",
+        key="home_quick_search",
+    )
+with col_q2:
+    quick_search_clicked = st.button("🔍 Search", use_container_width=True)
+
+if quick_search_clicked:
+    st.switch_page("pages/1_Gene_Query.py")
+# ============ 插入结束 ============
+
+
 st.markdown("---")
 st.markdown("## Get started")
 

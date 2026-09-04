@@ -65,7 +65,7 @@ st.dataframe(
     preview_df,
     use_container_width=True,
     hide_index=True,
-    height=min(35 * (n_show_rows + 1), 600),
+    height=300,
 )
 
 st.caption(f"Showing {n_show_rows} of {df.shape[0]:,} total genes, "

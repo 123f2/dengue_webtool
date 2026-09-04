@@ -206,16 +206,15 @@ def plot_gene_barchart(query_result: dict):
 # ============ 追加到 utils.py 末尾 ============
 
 @st.cache_data(show_spinner="Computing overall distribution across datasets...")
-def get_overall_dataset_distribution(df: pd.DataFrame, col_meta: pd.DataFrame):
-    """
-    把整个表达矩阵展开(melt)，得到每个数据集下"所有基因 x 所有患者"的log2FC值，
-    用于绘制不针对单个基因的"整体数据分布"箱线图，直观展示每个数据集本身的
-    数值范围/离散程度（比如某个平台整体波动更大，或者存在批次效应）。
-    """
+def get_overall_dataset_distribution(df: pd.DataFrame, col_meta: pd.DataFrame, sample_per_dataset: int = 20000):
     expr_cols = col_meta["column"].tolist()
     melted = df[expr_cols].melt(var_name="column", value_name="log2FC").dropna()
     melted = melted.merge(col_meta[["column", "dataset", "severity"]], on="column", how="left")
-    return melted
+
+    sampled = melted.groupby("dataset", group_keys=False).apply(
+        lambda x: x.sample(n=min(len(x), sample_per_dataset), random_state=42)
+    )
+    return sampled
 
 
 def plot_overall_distribution(melted_df: pd.DataFrame):

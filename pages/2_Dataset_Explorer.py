@@ -71,35 +71,6 @@ st.dataframe(
 st.caption(f"Showing {n_show_rows} of {df.shape[0]:,} total genes, "
            f"{len(preview_cols)} patient column(s) from {preview_dataset}.")
 
-st.markdown("---")
-
-# =========================
-# 3. 7个数据集的整体分布（按钮触发，避免拖慢预览区交互 + 采样减少计算量）
-# =========================
-st.subheader("📈 Overall log2FC Distribution Across the 7 Datasets")
-st.caption(
-    "This plot shows the distribution of log2FC values across all genes and all "
-    "patients within each dataset (not specific to any one gene) — useful for "
-    "spotting overall differences in scale or variability between studies/platforms. "
-    "For performance, up to 20,000 values per dataset are sampled to render this plot."
-)
-
-if "show_overall_dist" not in st.session_state:
-    st.session_state.show_overall_dist = False
-
-if st.button("📈 Generate overall distribution plot"):
-    st.session_state.show_overall_dist = True
-
-if st.session_state.show_overall_dist:
-    with st.spinner("Computing overall distribution (this may take a moment on first load)..."):
-        melted = get_overall_dataset_distribution(df, col_meta)
-        fig = plot_overall_distribution(melted)
-    st.plotly_chart(fig, use_container_width=True)
-else:
-    st.info("👆 Click the button above to generate the overall distribution plot.")
-
-st.markdown("---")
-
 # =========================
 # 4. 备注
 # =========================

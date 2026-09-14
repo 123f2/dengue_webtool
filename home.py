@@ -109,6 +109,7 @@ if data_loaded:
     with st.expander("📋 View dataset composition (patients per study)"):
         st.dataframe(dataset_summary, use_container_width=True, hide_index=True)
 
+
 st.markdown("---")
 st.markdown("## Get started")
 

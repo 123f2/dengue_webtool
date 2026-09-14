@@ -124,6 +124,17 @@ with col2:
     st.write("Browse the 7 underlying studies and their patient composition.")
     st.page_link("pages/2_Dataset_Explorer.py", label="Open Dataset Explorer", icon="🧪")
 
+col3, col4 = st.columns(2)
+with col3:
+    st.subheader("📊 Gene Rankings")
+    st.write("Find top genes per dataset, look up a gene's rank across datasets, or correlate two genes.")
+    st.page_link("pages/3_Gene_Rankings.py", label="Open Gene Rankings", icon="📊")
+
+with col4:
+    st.subheader("ℹ️ About")
+    st.write("Learn about the project's aim, data sources, methodology, and limitations.")
+    st.page_link("pages/4_About.py", label="Open About", icon="ℹ️")
+
 st.markdown("---")
 
 with st.expander("🛣️ Roadmap — coming in future updates"):

@@ -1,5 +1,5 @@
 import streamlit as st
-from utils import load_and_preprocess_data, query_gene, plot_gene_boxplot, plot_gene_barchart, GENE_COL
+from utils import load_and_preprocess_data, query_gene, plot_gene_boxplot, plot_forest, GENE_COL
 
 st.set_page_config(page_title="Gene Query — Severe Dengue Explorer", page_icon="🔍", layout="wide")
 
@@ -131,7 +131,7 @@ st.subheader("📈 Visualisation")
 
 viz_type = st.selectbox(
     "Choose visualisation type",
-    options=["Box Plot (all patient data points)", "Bar Chart (dataset mean ± SD)"],
+    options=["Box Plot (all patient data points)", "Forest Plot (mean ± 95% CI)"],
 )
 
 if viz_type.startswith("Box Plot"):
@@ -140,16 +140,19 @@ if viz_type.startswith("Box Plot"):
         "Each point is one patient's log2FC value. Box shows median and interquartile range."
     )
 else:
-    fig = plot_gene_barchart(result)
+    fig = plot_forest(result)
     st.caption(
-        "Bars show the mean log2FC per dataset, with error bars indicating ±1 standard deviation."
+        "Each point is the mean log2FC for a dataset, with horizontal whiskers showing the "
+        "95% confidence interval. The diamond at the bottom (Overall) summarises the mean "
+        "log2FC across all datasets, with its own 95% CI based on between-dataset variability — "
+        "if this interval does not cross zero, the overall effect is statistically significant."
     )
 
 if fig is not None:
     st.plotly_chart(fig, use_container_width=True)
 
     # 新增：图表下载按钮
-    chart_type_label = "boxplot" if viz_type.startswith("Box Plot") else "barchart"
+    chart_type_label = "boxplot" if viz_type.startswith("Box Plot") else "forestplot"
     try:
         img_bytes = fig.to_image(format="png", scale=2, width=1000, height=600)
         st.download_button(

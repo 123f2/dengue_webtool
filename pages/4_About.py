@@ -93,3 +93,7 @@ st.markdown(
     project team.
     """
 )
+
+st.markdown("---")
+st.page_link("home.py", label="← Back to Home", icon="🏠")
+

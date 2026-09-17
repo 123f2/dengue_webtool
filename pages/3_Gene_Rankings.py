@@ -140,6 +140,9 @@ with tab2:
             display_df["Rank"] = display_df["Rank"].apply(
                 lambda r: f"{int(r):,}" if pd.notna(r) else "—"
             )
+            display_df["Total Genes Ranked"] = display_df["Total Genes Ranked"].apply(
+               lambda v: f"{int(v):,}" if pd.notna(v) else "—"
+            )
 
             st.dataframe(display_df, use_container_width=True, hide_index=True)
             st.caption(

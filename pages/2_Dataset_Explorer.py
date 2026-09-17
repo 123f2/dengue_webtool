@@ -90,3 +90,6 @@ st.markdown(
       cross-cohort consistency.
     """
 )
+
+st.markdown("---")
+st.page_link("home.py", label="← Back to Home", icon="🏠")

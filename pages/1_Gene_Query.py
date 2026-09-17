@@ -169,3 +169,6 @@ if fig is not None:
 
 else:
     st.warning("No data available to plot for this gene under the current analysis group.")
+
+st.markdown("---")
+st.page_link("home.py", label="← Back to Home", icon="🏠")

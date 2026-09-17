@@ -205,3 +205,6 @@ with tab3:
             )
     else:
         st.info("👆 Enter both gene symbols above to see their correlation.")
+
+st.markdown("---")
+st.page_link("home.py", label="← Back to Home", icon="🏠")

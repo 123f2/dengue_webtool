@@ -194,6 +194,22 @@ with tab3:
             fig = plot_gene_correlation(corr_result)
             st.plotly_chart(fig, use_container_width=True)
 
+            # 新增：图表下载按钮
+            try:
+                img_bytes = fig.to_image(format="png", scale=2, width=1000, height=600)
+                st.download_button(
+                    label="⬇️ Download this chart as PNG",
+                    data=img_bytes,
+                    file_name=f"{corr_result['gene_a']}_vs_{corr_result['gene_b']}_{selected_mode_t3}_correlation.png",
+                    mime="image/png",
+                    key="t3_dl_png",
+                )
+            except Exception as e:
+                st.caption(
+                    "ℹ️ Chart image export is temporarily unavailable. "
+                    "You can still right-click the chart above to save it manually."
+                )
+
             r = corr_result["r"]
             p = corr_result["p"]
             n = corr_result["n_pairs"]

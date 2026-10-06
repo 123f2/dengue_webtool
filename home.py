@@ -19,9 +19,10 @@ if banner_path_obj.exists():
     with col_center:
         st.image(str(banner_path_obj), use_container_width=True)
     st.caption(
-    "<div style='text-align: center; color: #8a99a8; font-size: 0.85rem; margin-top: 0.3rem;'>"
-    "Sources: WHO Dengue fact sheet (21 Aug 2025); NEA Dengue Cases page (accessed 6 Oct 2026)</div>",
-    unsafe_allow_html=True,
+        "<div style='text-align: center; color: #8a99a8; font-size: 0.85rem; margin-top: 0.3rem;'>"
+        "Sources: WHO Dengue fact sheet (21 Aug 2025); WHO Global dengue surveillance dashboard; "
+        "NEA Dengue Cases page (accessed 6 Oct 2026)</div>",
+        unsafe_allow_html=True,
     )
     st.write("")
 else:
@@ -51,6 +52,17 @@ st.markdown(
     '<p class="sub-header">A resource for querying gene expression changes in severe dengue '
     '(DHF / DSS) relative to mild dengue (DF), integrated across 7 published patient cohorts.</p>',
     unsafe_allow_html=True,
+)
+
+st.markdown(
+    """
+    Dengue is a mosquito-borne viral infection that is now endemic in more than 100 countries.
+    WHO recorded 14.6 million cases in 2024, the highest total on record, and its global
+    surveillance dashboard lists 7.86 million cases between January 2025 and August 2026.
+    In Singapore, the National Environment Agency reported 2,564 cases in the first 39
+    epidemiological weeks of 2026. Most infections are mild, but a minority develop severe
+    dengue, for which there is no specific treatment.
+    """
 )
 
 st.markdown("---")

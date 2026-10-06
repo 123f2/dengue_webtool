@@ -15,13 +15,13 @@ BANNER_PATH = "assets/dengue_banner.jpg"
 banner_path_obj = Path(BANNER_PATH)
 
 if banner_path_obj.exists():
-    col_left, col_center, col_right = st.columns([1, 4, 1])
+    col_left, col_center, col_right = st.columns([1, 6, 1])
     with col_center:
         st.image(str(banner_path_obj), use_container_width=True)
     st.caption(
-        "<div style='text-align: center; color: #8a99a8; font-size: 0.85rem; margin-top: 0.3rem;'>"
-        "Background: dengue epidemiology in Singapore</div>",
-        unsafe_allow_html=True,
+    "<div style='text-align: center; color: #8a99a8; font-size: 0.85rem; margin-top: 0.3rem;'>"
+    "Sources: WHO Dengue fact sheet (21 Aug 2025); NEA Dengue Cases page (accessed 6 Oct 2026)</div>",
+    unsafe_allow_html=True,
     )
     st.write("")
 else:

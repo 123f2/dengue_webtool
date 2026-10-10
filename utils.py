@@ -300,15 +300,21 @@ def mark_top_hits(landscape_df: pd.DataFrame, top_n: int = 10):
     return result
 
 
-def plot_gene_rank_scatter(marked_df: pd.DataFrame, dataset_name: str, mode_label: str = "combined"):
-    """GeneRaMeN风格全景散点图：灰色背景全部基因 + 两端高亮上色(不标常驻文字，靠hover)"""
+def plot_gene_rank_scatter(marked_df: pd.DataFrame, dataset_name: str, mode_label: str = "combined",
+                           use_gl: bool = True):
+    """GeneRaMeN风格全景散点图：灰色背景全部基因 + 两端高亮上色(不标常驻文字，靠hover)
+
+    use_gl=True 时灰色背景点用WebGL绘制(网页交互更流畅)；
+    导出PNG时传 use_gl=False，改用普通scatter，避免静态导出时WebGL点不显示。
+    """
     normal_df = marked_df[marked_df["highlight"] == "No"]
     up_df = marked_df[marked_df["highlight"] == "Up"]
     down_df = marked_df[marked_df["highlight"] == "Down"]
 
     fig = go.Figure()
 
-    fig.add_trace(go.Scattergl(
+    background_trace = go.Scattergl if use_gl else go.Scatter
+    fig.add_trace(background_trace(
         x=normal_df["x_position"], y=normal_df["mean_log2FC"],
         mode="markers",
         marker=dict(color="lightgray", size=5, opacity=0.5),
@@ -365,6 +371,89 @@ def get_top_hits_table(marked_df: pd.DataFrame):
     )
 
     return up_table, down_table
+
+
+@st.cache_data(show_spinner=False)
+def render_gene_rank_png(marked_df: pd.DataFrame, dataset_name: str, mode_label: str):
+    """把全景散点图导出为PNG字节(结果按参数缓存，滑动其他控件时不重复导出)。
+    需要 kaleido；导出失败时抛出异常，由页面捕获并给出提示。"""
+    export_fig = plot_gene_rank_scatter(marked_df, dataset_name, mode_label=mode_label, use_gl=False)
+    return export_fig.to_image(format="png", scale=2, width=1200, height=650)
+
+
+def get_top_gene_overlap(df: pd.DataFrame, col_meta: pd.DataFrame, mode: str = "combined",
+                         direction: str = "up", top_n: int = 50, min_patients: int = 3):
+    """
+    统计各数据集中排名前 top_n 的上调(direction="up")或下调(direction="down")基因的重叠情况。
+
+    - 每个数据集内部排名方式与 Top Genes 表一致：按该数据集平均log2FC排序，
+      仅在至少 min_patients 名患者中检测到的基因参与排名；
+      排名1 = 该方向上变化最明显的基因。
+    - 所选分组下没有患者的数据集(例如DSS分组下的GSE18090)不参与比较，记入 datasets_skipped。
+    - 返回 dict：
+        sufficient_data : 参与比较的数据集 >= 2 时为 True
+        table           : 每个至少进入一个数据集前top_n的基因一行，
+                          列 = Gene / N Datasets / 各数据集中的排名(未进入前top_n为空)
+        n_ge2, n_ge3    : 出现在 >=2 / >=3 个数据集前top_n的基因数
+        max_n, max_genes: 单个基因最多出现在几个数据集，以及对应基因
+        n_ranked        : 每个数据集参与排名的基因总数
+    """
+    if direction not in ("up", "down"):
+        raise ValueError("direction 必须是 'up' 或 'down'")
+
+    top_rows = []
+    n_ranked = {}
+    skipped = []
+    for dataset in sorted(col_meta["dataset"].unique()):
+        landscape = get_gene_landscape(df, col_meta, dataset, mode=mode, min_patients=min_patients)
+        if landscape is None:
+            skipped.append(dataset)
+            continue
+
+        ordered = landscape.sort_values("mean_log2FC", ascending=(direction == "down")).reset_index(drop=True)
+        n_ranked[dataset] = len(ordered)
+        top = ordered.head(top_n)[["gene"]].copy()
+        top["rank"] = np.arange(1, len(top) + 1)
+        top["dataset"] = dataset
+        top_rows.append(top)
+
+    used = list(n_ranked.keys())
+    if len(used) < 2:
+        return {"sufficient_data": False, "datasets_used": used, "datasets_skipped": skipped,
+                "n_ranked": n_ranked}
+
+    long_df = pd.concat(top_rows, ignore_index=True)
+    rank_wide = (
+        long_df.pivot_table(index="gene", columns="dataset", values="rank", aggfunc="min")
+        .reindex(columns=used)
+    )
+    n_datasets = rank_wide.notna().sum(axis=1)
+
+    table = rank_wide.copy()
+    table.insert(0, "N Datasets", n_datasets)
+    table["_best_rank"] = rank_wide.min(axis=1)
+    table = (
+        table.sort_values(["N Datasets", "_best_rank"], ascending=[False, True])
+        .drop(columns="_best_rank")
+        .reset_index()
+        .rename(columns={"gene": "Gene"})
+    )
+    table[used] = table[used].astype("Int64")
+
+    max_n = int(n_datasets.max())
+    max_genes = sorted(n_datasets[n_datasets == max_n].index.tolist())
+
+    return {
+        "sufficient_data": True,
+        "table": table,
+        "datasets_used": used,
+        "datasets_skipped": skipped,
+        "n_ranked": n_ranked,
+        "n_ge2": int((n_datasets >= 2).sum()),
+        "n_ge3": int((n_datasets >= 3).sum()),
+        "max_n": max_n,
+        "max_genes": max_genes,
+    }
 
 
 # =========================================================

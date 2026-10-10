@@ -9,6 +9,8 @@ from utils import (
     gene_rank_across_datasets,
     gene_pair_correlation,
     plot_gene_correlation,
+    render_gene_rank_png,
+    get_top_gene_overlap,
 )
 
 st.set_page_config(page_title="Gene Rankings — Severe Dengue Explorer", page_icon="📊", layout="wide")
@@ -67,6 +69,23 @@ with tab1:
         marked = mark_top_hits(landscape, top_n=top_n)
         fig = plot_gene_rank_scatter(marked, selected_dataset, mode_label=MODE_LABELS[selected_mode_t1])
         st.plotly_chart(fig, use_container_width=True)
+
+        # 散点图PNG下载按钮
+        try:
+            landscape_png = render_gene_rank_png(marked, selected_dataset, MODE_LABELS[selected_mode_t1])
+            st.download_button(
+                label="⬇️ Download this chart as PNG",
+                data=landscape_png,
+                file_name=f"{selected_dataset}_{selected_mode_t1}_top{top_n}_landscape.png",
+                mime="image/png",
+                key="t1_dl_png",
+            )
+        except Exception:
+            st.caption(
+                "ℹ️ Figure export is temporarily unavailable. "
+                "You can still use the camera icon in the figure toolbar to save it manually."
+            )
+
         st.caption(
             "Gray points are all other genes; hover over a highlighted point to see the gene name. "
             f"{len(landscape):,} genes were included in this ranking "
@@ -100,6 +119,94 @@ with tab1:
                 file_name=f"{selected_dataset}_{selected_mode_t1}_top{top_n}_down.csv", mime="text/csv",
                 key="t1_dl_down",
             )
+
+    # ---------------------------------------------------------
+    # 重叠统计：各数据集前N名上调/下调基因是否重叠
+    # ---------------------------------------------------------
+    st.divider()
+    st.subheader("Overlap of top genes across datasets")
+    st.caption(
+        "Check whether the same genes are among the most upregulated (or most downregulated) "
+        "genes in several datasets. Each dataset is ranked separately, using the same rules as above."
+    )
+
+    o1, o2, o3 = st.columns([1, 1, 1])
+    with o1:
+        ov_direction = st.selectbox(
+            "Direction", options=["up", "down"],
+            format_func=lambda d: "Upregulated" if d == "up" else "Downregulated",
+            key="t1_ov_dir",
+        )
+    with o2:
+        ov_top_n = st.number_input(
+            "Top N genes per dataset", min_value=1, max_value=1000, value=50, step=10,
+            key="t1_ov_n",
+        )
+    with o3:
+        ov_mode = st.selectbox(
+            "Analysis Group", options=["combined", "DHF", "DSS"],
+            format_func=lambda m: MODE_LABELS[m], key="t1_ov_mode",
+        )
+
+    overlap = get_top_gene_overlap(df, col_meta, mode=ov_mode, direction=ov_direction, top_n=int(ov_top_n))
+
+    if not overlap["sufficient_data"]:
+        st.warning(
+            f"⚠️ Fewer than two datasets have {ov_mode} patients — "
+            f"please choose a different analysis group."
+        )
+    else:
+        used_datasets = overlap["datasets_used"]
+        if overlap["datasets_skipped"]:
+            st.info(
+                f"No {ov_mode} patients in {', '.join(overlap['datasets_skipped'])}; "
+                f"these datasets are not included in the comparison."
+            )
+
+        m1, m2, m3, m4 = st.columns(4)
+        m1.metric("Datasets compared", len(used_datasets))
+        m2.metric("Genes in ≥ 2 datasets", overlap["n_ge2"])
+        m3.metric("Genes in ≥ 3 datasets", overlap["n_ge3"])
+        m4.metric("Most datasets for one gene", overlap["max_n"])
+
+        genes_preview = ", ".join(overlap["max_genes"][:5])
+        if len(overlap["max_genes"]) > 5:
+            genes_preview += ", ..."
+        st.caption(f"Found in the most datasets ({overlap['max_n']}): {genes_preview}")
+
+        min_ds = st.selectbox(
+            "Show genes found in at least this many datasets",
+            options=list(range(1, len(used_datasets) + 1)),
+            index=min(1, len(used_datasets) - 1),
+            key="t1_ov_min",
+        )
+        shown = overlap["table"][overlap["table"]["N Datasets"] >= min_ds]
+
+        if shown.empty:
+            st.info("No genes appear in that many datasets. Try a smaller number or a larger Top N.")
+        else:
+            display_overlap = shown.copy()
+            for ds_col in used_datasets:
+                display_overlap[ds_col] = display_overlap[ds_col].apply(
+                    lambda v: f"{int(v):,}" if pd.notna(v) else "—"
+                )
+            st.dataframe(
+                display_overlap, use_container_width=True, hide_index=True,
+                height=min(35 * (len(shown) + 1), 500),
+            )
+            st.download_button(
+                "⬇️ Download Overlap Table as CSV",
+                data=shown.to_csv(index=False).encode("utf-8"),
+                file_name=f"overlap_top{int(ov_top_n)}_{ov_direction}_{ov_mode}.csv", mime="text/csv",
+                key="t1_ov_dl",
+            )
+
+        ranked_text = "; ".join(f"{d} ({n:,})" for d, n in overlap["n_ranked"].items())
+        st.caption(
+            "Numbers in the dataset columns are the gene's rank within that dataset "
+            "(1 = most upregulated or most downregulated); '—' = not in that dataset's top N. "
+            f"Genes ranked per dataset: {ranked_text}."
+        )
 
 # =========================================================
 # TAB 2: 基因跨数据集排名查询 (4.2)
@@ -194,7 +301,7 @@ with tab3:
             fig = plot_gene_correlation(corr_result)
             st.plotly_chart(fig, use_container_width=True)
 
-            # 新增：图表下载按钮
+            # 图下载按钮
             try:
                 img_bytes = fig.to_image(format="png", scale=2, width=1000, height=600)
                 st.download_button(
@@ -206,8 +313,8 @@ with tab3:
                 )
             except Exception as e:
                 st.caption(
-                    "ℹ️ Chart image export is temporarily unavailable. "
-                    "You can still right-click the chart above to save it manually."
+                    "ℹ️ Figure export is temporarily unavailable. "
+                    "You can still use the camera icon in the figure toolbar to save it manually."
                 )
 
             r = corr_result["r"]
@@ -224,3 +331,4 @@ with tab3:
 
 st.markdown("---")
 st.page_link("home.py", label="← Back to Home", icon="🏠")
+                                                                                                                                                                                                                                                                                                          

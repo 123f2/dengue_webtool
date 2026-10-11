@@ -152,10 +152,9 @@ st.markdown("---")
 with st.expander("🛣️ Roadmap — coming in future updates"):
     st.markdown(
         """
-        - Automated ranking of the most consistently differentially expressed genes
-          across datasets (candidate drug targets)
+        - A combined ranking across datasets (for example, the mean percentile), alongside the per-dataset results
+        - Gene-gene correlation within each dataset, a Spearman option and confidence intervals
         - Stratification by patient demographics (age, sex) where available
-        - Pathway / gene-set level summaries
         """
     )
 

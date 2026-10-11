@@ -58,8 +58,8 @@ st.markdown(
     - Sex-linked genes (e.g. *XIST*, *RPS4Y1*, *UTY*) appear among the top-ranked genes
       in some datasets. Sex information is not included in this tool, so such genes may
       reflect differences in sex composition rather than disease severity.
-    - Ranks and percentiles are exploratory: they are computed separately for each
-      dataset and are not adjusted for multiple testing.
+    - Ranks and percentiles are descriptive and computed separately for each dataset without 
+      significance testing, so extreme ranks may occur by chance, especially with few patients.
     - Gene-gene correlations pool patients across datasets without batch correction, so
       a strong correlation can be partly driven by differences between datasets.
     """
